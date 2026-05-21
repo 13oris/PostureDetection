@@ -1,0 +1,160 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:padding="16dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:layout_marginBottom="8dp"
+            android:text="Posture IMU Data Collector"
+            android:textSize="22sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Instructions: 1. Press Calibrate (30s natural upright). 2. Select Label and Context. 3. Start Recording. 4. Switch labels freely."
+            android:layout_marginBottom="16dp"
+            android:textSize="14sp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Protocol: Calibrate(30s) -> Upright(2m) -> Mild Flexion(2m) -> Severe Looking-Down(2m)"
+            android:textColor="#555555"
+            android:layout_marginBottom="16dp"
+            android:textSize="12sp" />
+
+        <TextView
+            android:id="@+id/tvSessionId"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Session ID: Not started"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/tvStatus"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Status: Stopped"
+            android:textColor="#D32F2F"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/tvCalibrationStatus"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Calibration: Not Done"
+            android:textColor="#D32F2F" />
+
+        <TextView
+            android:id="@+id/tvTimeAndRate"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Elapsed: 00:00 | Rate: 0 Hz" />
+
+        <TextView
+            android:id="@+id/tvWarning"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:textColor="#D32F2F"
+            android:textStyle="bold"
+            android:visibility="gone" />
+
+        <Button
+            android:id="@+id/btnCalibrate"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="Calibrate (30s)" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginTop="16dp">
+
+            <Button
+                android:id="@+id/btnStart"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Start Recording" />
+
+            <Space
+                android:layout_width="8dp"
+                android:layout_height="wrap_content" />
+
+            <Button
+                android:id="@+id/btnStop"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:enabled="false"
+                android:text="Stop Recording" />
+        </LinearLayout>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="Context:"
+            android:textStyle="bold" />
+
+        <Spinner
+            android:id="@+id/spinnerContext"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Current Label (Press to change during recording):"
+            android:textStyle="bold" />
+
+        <RadioGroup
+            android:id="@+id/radioGroupLabels"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <RadioButton
+                android:id="@+id/rbUpright"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:checked="true"
+                android:text="Upright" />
+
+            <RadioButton
+                android:id="@+id/rbMild"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Mild Forward Flexion" />
+
+            <RadioButton
+                android:id="@+id/rbSevere"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Severe Looking-Down" />
+        </RadioGroup>
+
+        <TextView
+            android:id="@+id/tvSaveLocation"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="Save location will appear here"
+            android:textSize="12sp" />
+
+    </LinearLayout>
+</ScrollView>

@@ -1,0 +1,19 @@
+Test loss: 0.352709
+Test accuracy: 0.907190
+
+                      precision    recall  f1-score   support
+
+             Upright     1.0000    0.9105    0.9532       257
+Mild Forward Flexion     0.9000    0.8214    0.8589       252
+ Severe Looking-Down     0.8405    0.9883    0.9084       256
+
+            accuracy                         0.9072       765
+           macro avg     0.9135    0.9067    0.9068       765
+        weighted avg     0.9137    0.9072    0.9071       765
+
+Recall by class:
+Upright: 0.910506
+Mild Forward Flexion: 0.821429
+Severe Looking-Down: 0.988281
+
+Severe Looking-Down recall: 0.988281

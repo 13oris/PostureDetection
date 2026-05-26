@@ -19,6 +19,9 @@ import android.os.SystemClock
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
+import android.content.BroadcastReceiver
+import android.content.IntentFilter
+import android.util.Log
 import androidx.core.app.NotificationCompat
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -79,6 +82,41 @@ class PostureMonitoringService : Service(), SensorEventListener {
 
     private var badPostureStartTime: Long = 0
     private var lastVibrationTime: Long = 0
+    private var isPausedForScreenOff = false
+
+    private val screenStateReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            Log.d("PostureService", "Received broadcast: ${intent.action}")
+            when (intent.action) {
+                Intent.ACTION_SCREEN_OFF -> {
+                    if (_isMonitoring.value && !isPausedForScreenOff) {
+                        Log.d("PostureService", "Screen OFF: pausing monitoring")
+                        isPausedForScreenOff = true
+                        unregisterSensorsAndStopJobs()
+                        _statusColor.value = StatusColor.GREY
+                        _systemStatus.value = "Paused (Screen Off)"
+                        updateNotification("자세 모니터링이 일시 중지되었습니다. (화면 꺼짐)", StatusColor.GREY)
+                    }
+                }
+                Intent.ACTION_SCREEN_ON -> {
+                    val km = context.getSystemService(Context.KEYGUARD_SERVICE) as android.app.KeyguardManager
+                    Log.d("PostureService", "Screen ON: isKeyguardLocked = ${km.isKeyguardLocked}")
+                    if (_isMonitoring.value && isPausedForScreenOff && !km.isKeyguardLocked) {
+                        Log.d("PostureService", "Screen ON & unlocked: resuming monitoring")
+                        isPausedForScreenOff = false
+                        registerSensorsAndStartJobs()
+                    }
+                }
+                Intent.ACTION_USER_PRESENT -> {
+                    if (_isMonitoring.value && isPausedForScreenOff) {
+                        Log.d("PostureService", "User Present (Unlocked): resuming monitoring")
+                        isPausedForScreenOff = false
+                        registerSensorsAndStartJobs()
+                    }
+                }
+            }
+        }
+    }
 
     companion object {
         const val NOTIFICATION_ID = 1001
@@ -162,7 +200,23 @@ class PostureMonitoringService : Service(), SensorEventListener {
         }
 
         _isUsingQuantized.value = classifier.getModelName() == "posture_1dcnn_int8.tflite"
+        _isMonitoring.value = true
 
+        val filter = IntentFilter().apply {
+            addAction(Intent.ACTION_SCREEN_OFF)
+            addAction(Intent.ACTION_SCREEN_ON)
+            addAction(Intent.ACTION_USER_PRESENT)
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            registerReceiver(screenStateReceiver, filter, Context.RECEIVER_EXPORTED)
+        } else {
+            registerReceiver(screenStateReceiver, filter)
+        }
+
+        registerSensorsAndStartJobs()
+    }
+
+    private fun registerSensorsAndStartJobs() {
         synchronized(sensorLock) {
             hasAcc = false
             hasGyro = false
@@ -176,7 +230,6 @@ class PostureMonitoringService : Service(), SensorEventListener {
         _currentPosture.value = null
         _confidence.value = 0f
 
-        // Register sensors
         val registeredAcc = accelerometer?.let {
             sensorManager.registerListener(this, it, 20000)
         } ?: false
@@ -191,7 +244,6 @@ class PostureMonitoringService : Service(), SensorEventListener {
             return
         }
 
-        _isMonitoring.value = true
         _systemStatus.value = "Monitoring Active"
         updateNotification("자세 모니터링이 활성화되었습니다.", StatusColor.GREEN)
 
@@ -267,7 +319,7 @@ class PostureMonitoringService : Service(), SensorEventListener {
 
                         if (duration >= 8f) {
                             _statusColor.value = StatusColor.RED
-                            triggerBackgroundAlerts(duration)
+                            triggerBackgroundAlerts(duration, smoothedLabel)
                         } else {
                             _statusColor.value = StatusColor.ORANGE
                             val remaining = (8f - duration).coerceAtLeast(0f)
@@ -281,7 +333,22 @@ class PostureMonitoringService : Service(), SensorEventListener {
         }
     }
 
-    private fun triggerBackgroundAlerts(duration: Float) {
+    private fun unregisterSensorsAndStopJobs() {
+        samplingJob?.cancel()
+        samplingJob = null
+        inferenceJob?.cancel()
+        inferenceJob = null
+
+        sensorManager.unregisterListener(this)
+
+        badPostureStartTime = 0
+        lastVibrationTime = 0
+        _badPostureDuration.value = 0f
+        _currentPosture.value = null
+        _confidence.value = 0f
+    }
+
+    private fun triggerBackgroundAlerts(duration: Float, label: PostureLabel) {
         val now = SystemClock.elapsedRealtime()
 
         // Double pulse vibration triggered every 1 second
@@ -297,10 +364,19 @@ class PostureMonitoringService : Service(), SensorEventListener {
                 }
 
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                    vibrator.vibrate(VibrationEffect.createWaveform(longArrayOf(0, 350, 150, 350), -1))
+                    val effect = if (label == PostureLabel.MILD_FORWARD_FLEXION) {
+                        VibrationEffect.createWaveform(longArrayOf(0, 200), -1)
+                    } else {
+                        VibrationEffect.createWaveform(longArrayOf(0, 400, 150, 400), -1)
+                    }
+                    vibrator.vibrate(effect)
                 } else {
                     @Suppress("DEPRECATION")
-                    vibrator.vibrate(800)
+                    if (label == PostureLabel.MILD_FORWARD_FLEXION) {
+                        vibrator.vibrate(200)
+                    } else {
+                        vibrator.vibrate(longArrayOf(0, 400, 150, 400), -1)
+                    }
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
@@ -361,20 +437,17 @@ class PostureMonitoringService : Service(), SensorEventListener {
     private fun stopMonitoring() {
         if (!_isMonitoring.value) return
 
-        samplingJob?.cancel()
-        samplingJob = null
-        inferenceJob?.cancel()
-        inferenceJob = null
+        try {
+            unregisterReceiver(screenStateReceiver)
+        } catch (e: Exception) {
+            // Ignore if not registered
+        }
+        isPausedForScreenOff = false
 
-        sensorManager.unregisterListener(this)
+        unregisterSensorsAndStopJobs()
 
         _isMonitoring.value = false
         _statusColor.value = StatusColor.GREY
-        _currentPosture.value = null
-        _confidence.value = 0f
-        _badPostureDuration.value = 0f
-        badPostureStartTime = 0
-        lastVibrationTime = 0
         _systemStatus.value = "Monitoring Stopped"
 
         stopForeground(STOP_FOREGROUND_REMOVE)

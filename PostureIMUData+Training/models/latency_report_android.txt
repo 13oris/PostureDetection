@@ -1,0 +1,28 @@
+Device: SM-S918N
+Android: 14
+ABI: arm64-v8a
+Runner: Android instrumentation test
+Test class: com.example.posturedetectionapp.TFLiteLatencyInstrumentedTest
+TensorFlow Lite threads: 2
+Warmup runs: 200
+Measured runs per model: 10000
+Input sample: deterministic synthetic normalized 100x6 window
+
+FP32 TFLite
+Model: posture_1dcnn_float32.tflite
+Input: FLOAT32, quant_scale=0.0, quant_zero_point=0
+Output: FLOAT32, quant_scale=0.0, quant_zero_point=0
+Invoke only latency (ms): mean=0.1485, median=0.1447, p95=0.1627, min=0.1421, max=7.9414
+End-to-end latency (ms): mean=0.1750, median=0.1741, p95=0.2101, min=0.1580, max=0.9432
+
+INT8 TFLite
+Model: posture_1dcnn_int8.tflite
+Input: INT8, quant_scale=0.15685102, quant_zero_point=-24
+Output: INT8, quant_scale=0.00390625, quant_zero_point=-128
+Invoke only latency (ms): mean=0.1045, median=0.1020, p95=0.1141, min=0.0972, max=0.2977
+End-to-end latency (ms): mean=0.1387, median=0.1320, p95=0.1542, min=0.1262, max=2.3339
+
+Summary:
+INT8 is faster than FP32 on this Android device.
+Invoke only mean speedup: 29.6%
+End-to-end mean speedup: 20.7%

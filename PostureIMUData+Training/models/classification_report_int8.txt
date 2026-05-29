@@ -1,0 +1,26 @@
+Model: posture_1dcnn_int8.tflite
+Input quantization: scale=0.15685102343559265, zero_point=-24, dtype=int8
+Output quantization: scale=0.00390625, zero_point=-128, dtype=int8
+Test windows: 761
+Test accuracy: 0.931669
+
+                      precision    recall  f1-score   support
+
+             Upright     0.9955    0.8706    0.9289       255
+Mild Forward Flexion     0.8676    0.9402    0.9025       251
+ Severe Looking-Down     0.9436    0.9843    0.9635       255
+
+            accuracy                         0.9317       761
+           macro avg     0.9356    0.9317    0.9316       761
+        weighted avg     0.9359    0.9317    0.9318       761
+
+Recall by class:
+Upright: 0.870588
+Mild Forward Flexion: 0.940239
+Severe Looking-Down: 0.984314
+
+Confusion matrix:
+                      Upright  Mild Forward Flexion  Severe Looking-Down
+Upright                   222                    32                    1
+Mild Forward Flexion        1                   236                   14
+Severe Looking-Down         0                     4                  251
